@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Image Model with upload</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
@@ -10,14 +11,28 @@
             max-width: 80%;
             height: auto;
         }
+        
         .chart-container {
             margin: 20px auto;
             max-width: 80%;
         }
     </style>
 </head>
+
 <body style="background-color: aquamarine;">
-    <div><h1 class="center-align">Railway Wheel Classification</h1></div>
+    <nav>
+        <div class="nav-wrapper">
+            <!-- <a href="#" class="brand-logo">Railway Wheel Classification</a> -->
+            <ul id="nav-mobile" class="right hide-on-med-and-down">
+                <li><a href="valueTrain.html">Value Based</a></li>
+                <li><a href="class_main.html">Reload</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div>
+        <h1 class="center-align">Railway Wheel Classification</h1>
+    </div>
     <hr>
     <div class="row">
         <div class="col s12">
@@ -26,7 +41,7 @@
     </div>
     <div class="row">
         <div class="col s12">
-            <input id="imageUpload" type="file" style="display: block; margin: 20px auto;"/>
+            <input id="imageUpload" type="file" style="display: block; margin: 20px auto;" />
         </div>
     </div>
     <div id="label-container" class="center-align"></div>
@@ -156,7 +171,7 @@
             var image = document.getElementById('imagePreview');
             const prediction = await model.predict(image, false);
             labelContainer.innerHTML = ''; // Clear previous messages
-            
+
             // Update existing chart with predictions
             const probabilities = [];
             const messages = [];
@@ -165,28 +180,30 @@
                 let probability = prediction[i].probability * 100;
                 probabilities.push(probability);
                 let message = `${probability.toFixed(2)}% `;
-                switch (className) {
-                    case 'Dented':
-                        message += `Train wheel dent detected, replace the wheel`;
-                        break;
-                    case 'Normal':
-                        message += `Train wheel normal detected, recommended time span 5 - 10 years`;
-                        break;
-                    case 'Rusted':
-                        message += `Train wheel Rust detected, replace the wheel`;
-                        break;
-                    case 'Damaged':
-                        message += `Train wheel damaged detected, replace the wheel`;
-                        break;
-                    default:
-                        message += `Unknown class detected`;
+                // Adjust message based on probability threshold
+                if (probability >= 90) {
+                    switch (className) {
+                        case 'Dented':
+                            message += `Train wheel dent detected, replace the wheel`;
+                            break;
+                        case 'Normal':
+                            message += `Train wheel normal detected, recommended time span 5 - 10 years`;
+                            break;
+                        case 'Rusted':
+                            message += `Train wheel Rust detected, replace the wheel`;
+                            break;
+                        default:
+                            message += `Unknown class detected`;
+                    }
+                } else {
+                    message += `Class not trained`;
                 }
                 messages.push(message);
             }
             labelContainer.innerHTML = messages.join('<br>');
             myCharts[0].data.datasets[0].data = probabilities;
             myCharts[0].update();
-            
+
             // Update combined metrics chart
             updateMetrics(prediction);
         }
@@ -194,10 +211,22 @@
         function updateMetrics(prediction) {
             // Calculate and update metrics
             // Dummy data for demonstration, replace with actual metrics data
-            const accuracy = 0.85;
-            const precision = 0.75;
-            const recall = 0.90;
-            const f1Score = 0.80;
+            if (prediction >= 95) {
+                accuracy = 0.85;
+                precision = 0.79;
+                recall = 0.90;
+                f1Score = 0.80;
+            } else if (prediction >= 90) {
+                accuracy = 0.75;
+                precision = 0.65;
+                recall = 0.69;
+                f1Score = 0.70;
+            } else {
+                accuracy = 0.79;
+                precision = 0.75;
+                recall = 0.80;
+                f1Score = 0.75;
+            }
 
             myCharts[1].data.datasets[0].data = [accuracy, precision, recall, f1Score];
             myCharts[1].update();
@@ -206,7 +235,7 @@
         function readURL(input) {
             if (input.files && input.files[0]) {
                 var reader = new FileReader();
-                reader.onload = function (e) {
+                reader.onload = function(e) {
                     $('#imagePreview').attr('src', e.target.result);
                 };
                 reader.readAsDataURL(input.files[0]);
@@ -215,9 +244,10 @@
                 });
             }
         }
-        $('#imageUpload').change(function () {
+        $('#imageUpload').change(function() {
             readURL(this);
         });
     </script>
 </body>
+
 </html>
