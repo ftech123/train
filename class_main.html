@@ -1,99 +1,59 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Image Model with upload</title>
-    <!-- Materialize CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
     <style>
         #imagePreview {
             display: block;
-            height: 300px;
+            margin: 0 auto;
+            max-width: 80%;
+            height: auto;
         }
-        #label-container {
-            margin-top: 20px;
-        }
-        #label-container > div {
-            margin-bottom: 10px;
-            font-family: Arial, sans-serif;
-            font-size: 16px;
-            color: #333;
-        }
-        .progress-container {
-            margin-bottom: 10px;
-        }
-        .progress-bar {
-            height: 20px;
-            background-color: #ddd;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-        .determinate {
-            height: 100%;
-            background-color: #4caf50;
-        }
-        #chart-container {
-            max-width: 100%;
-            overflow-x: auto;
-            margin-bottom: 10px;
-        }
-        #myChart {
-            max-width: 100%;
-            margin-bottom: 10px;
+        .chart-container {
+            margin: 20px auto;
+            max-width: 80%;
         }
     </style>
 </head>
 <body style="background-color: aquamarine;">
-    <div class="container">
-        <h1 class="center-align">Railway Wheel Classification</h1>
-        <hr>
-        <div class="row">
-            <div class="col s12">
-                <img id="imagePreview" class="responsive-img" />
-                <div class="file-field input-field">
-                    <div class="btn">
-                        <span>Upload</span>
-                        <input id="imageUpload" type="file">
-                    </div>
-                    <div class="file-path-wrapper">
-                        <input class="file-path validate" type="text">
-                    </div>
-                </div>
+    <div><h1 class="center-align">Railway Wheel Classification</h1></div>
+    <hr>
+    <div class="row">
+        <div class="col s12">
+            <img id="imagePreview" />
+        </div>
+    </div>
+    <div class="row">
+        <div class="col s12">
+            <input id="imageUpload" type="file" style="display: block; margin: 20px auto;"/>
+        </div>
+    </div>
+    <div id="label-container" class="center-align"></div>
+    <div class="row">
+        <div class="col s12">
+            <div class="chart-container">
+                <canvas id="myChart1"></canvas>
             </div>
         </div>
-        <div class="row">
-            <div class="col s12">
-                <a href="valueTrain.html" class="waves-effect waves-light btn">Value Based</a>
-                <a href="class_main.html" class="waves-effect waves-light btn">Reload</a>
-                <a href="realtime.html" class="waves-effect waves-light btn">Webcam</a>
-                <a href="login.html" class="waves-effect waves-light btn">Logout</a>
+    </div>
+    <div class="row">
+        <div class="col s12">
+            <div class="chart-container">
+                <canvas id="metricsChart"></canvas>
             </div>
-        </div>
-
-        <div id="label-container"></div>
-        <div id="graph-container"></div>
-        <div id="chart-container">
-            <canvas id="myChart"></canvas>
-        </div>
-        <div id="chart-container">
-            <canvas id="myChart11"></canvas>
         </div>
     </div>
 
-    <!-- Materialize JS and dependencies -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
-
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
-    <script type="text/javascript">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script>
         const URL = 'https://teachablemachine.withgoogle.com/models/qHHuMU65Y/';
 
-        let model, labelContainer, maxPredictions, graphContainer;
+        let model, labelContainer, maxPredictions, myCharts;
 
         async function init() {
             const modelURL = URL + 'model.json';
@@ -103,137 +63,151 @@
             maxPredictions = model.getTotalClasses();
 
             labelContainer = document.getElementById('label-container');
-            graphContainer = document.getElementById('graph-container');
-
+            const labels = [];
             for (let i = 0; i < maxPredictions; i++) {
-                labelContainer.appendChild(document.createElement('div'));
-
-                let progressContainer = document.createElement('div');
-                progressContainer.classList.add('progress-container');
-                let progressBar = document.createElement('div');
-                // progressBar.classList.add('progress-bar');
-                progressBar.innerHTML = `<div class="determinate" style="width: 0%;"></div>`;
-                progressContainer.appendChild(progressBar);
-                graphContainer.appendChild(progressContainer);
+                labels.push('');
             }
+
+            // Initialize an array to hold chart instances
+            myCharts = [];
+
+            // Data for the existing chart
+            const data = {
+                labels: labels,
+                datasets: [{
+                    label: 'Confidence Level',
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1,
+                    data: Array(maxPredictions).fill(0),
+                }]
+            };
+
+            // Configuration options for the existing chart
+            const options = {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            };
+
+            // Create the existing chart
+            const ctx1 = document.getElementById('myChart1').getContext('2d');
+            myCharts.push(new Chart(ctx1, {
+                type: 'bar',
+                data: data,
+                options: options
+            }));
+
+            // Data for the combined metrics chart
+            const metricsData = {
+                labels: ['Accuracy', 'Precision', 'Recall', 'F1 Score'],
+                datasets: [{
+                    label: 'Metrics',
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 206, 86, 0.2)',
+                        'rgba(75, 192, 192, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)'
+                    ],
+                    borderWidth: 1,
+                    data: [],
+                }]
+            };
+
+            // Configuration options for the combined metrics chart
+            const metricsOptions = {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        suggestedMax: 1
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            };
+
+            // Create the combined metrics chart
+            const ctx2 = document.getElementById('metricsChart').getContext('2d');
+            myCharts.push(new Chart(ctx2, {
+                type: 'bar',
+                data: metricsData,
+                options: metricsOptions
+            }));
         }
 
         async function predict() {
             var image = document.getElementById('imagePreview');
             const prediction = await model.predict(image, false);
+            labelContainer.innerHTML = ''; // Clear previous messages
+            
+            // Update existing chart with predictions
+            const probabilities = [];
+            const messages = [];
             for (let i = 0; i < maxPredictions; i++) {
                 let className = prediction[i].className;
-                let probability = prediction[i].probability.toFixed(2);
-                let predictionText;
-                if (probability == 1) {
-                    if (className === "Dented") {
-                        predictionText = "Damaged Wheel - Dented, needs to be changed.";
-                        labelContainer.childNodes[i].innerHTML = `${className}: ${predictionText}`;
-               
-                    } else if (className === "Normal") {
-                        predictionText = "Nice wheels can be used for another 10 years.";
-                        labelContainer.childNodes[i].innerHTML = `${className}: ${predictionText}`;
-      
-                    } else if (className === "Rusted") {
-                        predictionText = "Rusted Wheel, Recommended Time Span 4 - 5 years";
-                        labelContainer.childNodes[i].innerHTML = `${className}: ${predictionText}`;
+                let probability = prediction[i].probability * 100;
+                probabilities.push(probability);
+                let message = `${probability.toFixed(2)}% `;
+                switch (className) {
+                    case 'Dented':
+                        message += `Train wheel dent detected, replace the wheel`;
+                        break;
+                    case 'Normal':
+                        message += `Train wheel normal detected, recommended time span 5 - 10 years`;
+                        break;
+                    case 'Rusted':
+                        message += `Train wheel Rust detected, replace the wheel`;
+                        break;
+                    case 'Damaged':
+                        message += `Train wheel damaged detected, replace the wheel`;
+                        break;
+                    default:
+                        message += `Unknown class detected`;
+                }
+                messages.push(message);
+            }
+            labelContainer.innerHTML = messages.join('<br>');
+            myCharts[0].data.datasets[0].data = probabilities;
+            myCharts[0].update();
             
-                    } else {
-                    predictionText = "Recommended Time Span 4 - 5 years";
-                    labelContainer.childNodes[i].innerHTML = ` ${predictionText}`;
-                    
-                } 
-                } else {
-                    predictionText = "Recommended Time Span 4 - 5 years";
-                    }
-        const data = {
-          labels: ['Dented', 'Rusted', 'Normal'],
-          datasets: [{
-            label: 'CNN VISUALIZATION',
-            backgroundColor: 'rgba(54, 162, 235, 0.5)',
-            borderColor: 'rgba(54, 162, 235, 1)',
-            borderWidth: 1,
-            data: Array.from({length: 4}, () => (Math.random() * (0.9 - 0.8) + 0.8).toFixed(2))
-          }]
-        };
-      
-        // Configuration options
-        const options = {
-          scales: {
-            y: {
-              beginAtZero: true
-            }
-          },
-          plugins: {
-            legend: {
-              labels: {
-                font: {
-                  size: 12 // Adjust font size here
-                }
-              }
-            }
-          }
-        };
-      
-        // Create the bar chart
-        const ctx = document.getElementById('myChart').getContext('2d');
-        const myChart = new Chart(ctx, {
-          type: 'bar',
-          data: data,
-          options: options
-        });
-
-        // ----------------------------------------------------------------
-        const data11 = {
-          labels: ['Prediction', 'Recall value', 'Accuracy','Loss Value'],
-          datasets: [{
-            label: 'Model Accuracy',
-            backgroundColor: 'rgba(54, 162, 235, 0.5)',
-            borderColor: 'rgba(54, 162, 235, 1)',
-            borderWidth: 1,
-            data: Array.from({length: 5}, () => (Math.random() * (0.90 - 0.85) + 0.85).toFixed(2))
-          }]
-        };
-      
-        // Configuration options
-        const options11 = {
-          scales: {
-            y: {
-              beginAtZero: true
-            }
-          },
-          plugins: {
-            legend: {
-              labels: {
-                font: {
-                  size: 12 // Adjust font size here
-                }
-              }
-            }
-          }
-        };
-      
-        // Create the bar chart
-        const ctx11 = document.getElementById('myChart11').getContext('2d');
-        const myChart11 = new Chart(ctx11, {
-          type: 'bar',
-          data: data11,
-          options: options11
-        });
-        
-            }
+            // Update combined metrics chart
+            updateMetrics(prediction);
         }
-        
-    </script>
 
-    <script type="text/javascript">
+        function updateMetrics(prediction) {
+            // Calculate and update metrics
+            // Dummy data for demonstration, replace with actual metrics data
+            const accuracy = 0.85;
+            const precision = 0.75;
+            const recall = 0.90;
+            const f1Score = 0.80;
+
+            myCharts[1].data.datasets[0].data = [accuracy, precision, recall, f1Score];
+            myCharts[1].update();
+        }
+
         function readURL(input) {
             if (input.files && input.files[0]) {
                 var reader = new FileReader();
                 reader.onload = function (e) {
                     $('#imagePreview').attr('src', e.target.result);
-                    $('#imagePreview').hide();
-                    $('#imagePreview').fadeIn(650);
                 };
                 reader.readAsDataURL(input.files[0]);
                 init().then(() => {
